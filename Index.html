@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employment Card Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; background:#0f0; color:#0f0; margin:0; padding:20px; }
+  .form-container { background:#000; color:#0f0; padding:15px; border-radius:8px; box-shadow:0 0 10px #0f0; max-width:400px; margin:auto; font-weight:bold; position:relative; }
+  input { width:100%; margin:5px 0; padding:6px; border:1px solid #0f0; border-radius:4px; background:#000; color:#0f0; }
+  
+  .preview-btn {
+    margin-top:10px; padding:10px 16px; border:none; border-radius:6px; background:#0c0; color:#000; cursor:pointer;
+    font-weight:bold; font-size:15px; transition:0.3s; box-shadow:0 0 8px #0f0;
+  }
+  .preview-btn:hover { background:#0a0; color:#fff; transform:scale(1.05); }
+
+  /* Loading Overlay */
+  .loading-overlay {
+    display:none;
+    position:fixed;
+    top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.95);
+    z-index:2000;
+    color:#0f0;
+    font-size:22px;
+    font-weight:bold;
+    text-align:center;
+    padding-top:200px;
+    font-family: monospace;
+  }
+  .loading-text span {
+    display:inline-block;
+    animation: blink 0.6s infinite alternate;
+  }
+  .loading-text span:nth-child(2){ animation-delay:0.2s; }
+  .loading-text span:nth-child(3){ animation-delay:0.4s; }
+  @keyframes blink {
+    from { opacity:0.2; }
+    to { opacity:1; }
+  }
+
+  /* Success Popup */
+  .success-popup {
+    display:none;
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    background:#000;
+    color:#0f0;
+    padding:20px 30px;
+    font-size:20px;
+    font-weight:bold;
+    border:2px solid #0f0;
+    border-radius:8px;
+    box-shadow:0 0 20px #0f0;
+    z-index:3000;
+    font-family:monospace;
+    text-align:center;
+    animation: glow 1s infinite alternate;
+  }
+  @keyframes glow {
+    from { box-shadow:0 0 5px #0f0; }
+    to { box-shadow:0 0 20px #0f0; }
+  }
+
+  .id-card-popup { 
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); 
+    background:#fff; padding:10px; display:none; z-index:1000; 
+    width:95%; max-width:900px; max-height:95vh; overflow:auto; border-radius:8px; 
+  }
+  .close-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: #f00; color: #fff; border: none; padding: 10px 16px;
+    font-weight: bold; font-size: 16px; cursor: pointer; border-radius: 6px; z-index: 1001;
+    box-shadow: 0 0 8px rgba(0,0,0,0.4);
+  }
+  .close-btn:hover { background: #c00; transform: scale(1.05); transition: 0.2s; }
+
+  .id-card { display:flex; flex-direction:row; justify-content:space-between; background:#ffeb3b;   
+    font-size:13px; font-weight:bold; width:820px !important; height:500px !important; 
+    box-sizing:border-box; gap:10px; padding:15px; position:relative; color:#000; }
+  .left, .right { flex:1; padding:10px; border:2px solid #000; background:#ffeb3b; 
+    box-sizing:border-box; display:flex; flex-direction:column; justify-content:space-between; color:#000; }
+  .title { text-align:center; font-weight:bold; text-decoration:underline; margin-bottom:5px; font-size:16px; }
+  .fields-container { margin-top:20px; flex-grow:1; }
+  .field { margin:6px 0; line-height:1.4; }
+  .field-label { display:inline-block; font-size:13px !important; }
+  .value { display:inline-block; min-width:95px !important; text-align:left; border-bottom:1px solid #000; padding-left:5px; font-size:13px !important; }
+  .signature { text-align:right; margin-top:10px; font-weight:bold; }
+
+  .pledge-title { text-align:center; text-decoration:underline; margin-bottom:8px; font-weight:bold; font-size:15px; }
+  .pledge-text { flex-grow:1; text-align:center; font-size:13px; line-height:1.4; display:flex; flex-direction:column; justify-content:center; }
+  .jaya-surakshya { text-align:right; margin-top:10px; font-weight:bold; }
+
+  .fold-line { position:absolute; top:15px; bottom:15px; left:50%; width:0; border-left:2px dashed #000; pointer-events:none; }
+
+  @media(max-width:768px){
+    .id-card{ flex-direction: row !important; width:820px !important; height:500px !important; }
+  }
+
+  .powered { margin-top:15px; text-align:center; font-size:14px; font-weight:bold; color:#0f0; }
+</style>
+</head>
+<body>
+
+<div class="form-container">
+  <h3>Enter Employment Card Details</h3>
+  <label>Name & address of Contractor: <input id="contractor" type="text"></label>
+  <label>Nature and location of Work: <input id="nature" type="text"></label>
+  <label>Name & address of Principal Employer: <input id="employer" type="text"></label>
+  <label>Name of the Workman: <input id="workman" type="text"></label>
+  <label>UAN: <input id="uan" type="text"></label>
+  <label>Aadhaar/Voter: <input id="aadhaar" type="text"></label>
+  <label>Mobile: <input id="mobile" type="text"></label>
+  <label>Sl. No. as per Register of Workmen: <input id="slno" type="text"></label>
+  <label>Nature or Designation: <input id="designation" type="text"></label>
+  <label>Wages Rate : <input id="wages" type="text"></label>
+  <label>Date of Joining: <input id="joining" type="text"></label>
+  <label>Remarks: <input id="remarks" type="text"></label>
+  <button class="preview-btn" onclick="startLoading()">Preview ID Card</button>
+
+  <div class="powered">Powered by BAPON BARMON</div>
+</div>
+
+<!-- Loading screen -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-text">Loading<span>.</span><span>.</span><span>.</span></div>
+  <div style="margin-top:20px; font-size:16px;">Initializing secure preview...</div>
+</div>
+
+<!-- Success Popup -->
+<div class="success-popup" id="successPopup">
+  ✅ Successfully Downloaded Your ID Card
+</div>
+
+<div class="id-card-popup" id="card">
+  <button class="close-btn" onclick="closePopup()">✖ CLOSE</button>
+  <div class="id-card">
+    <div class="fold-line"></div>
+    <div class="left">
+      <div>
+        <div class="title">FORM XII<br>[Under rule 76]<br>Employment Card</div>
+        <div class="fields-container">
+          <div class="field"><span class="field-label">A. Name & address of Contractor :</span><span id="c1" class="value"></span></div>
+          <div class="field"><span class="field-label">B. Nature and location of Work :</span><span id="c2" class="value"></span></div>
+          <div class="field"><span class="field-label">C. Name & address of Principal Employer :</span><span id="c3" class="value"></span></div>
+          <div class="field"><span class="field-label">D. Name of the Workman :</span><span id="c4" class="value"></span></div>
+          <div class="field"><span class="field-label">D1. UAN :</span><span id="c5" class="value"></span></div>
+          <div class="field"><span class="field-label">D2. Voter / Aadhaar No :</span><span id="c6" class="value"></span></div>
+          <div class="field"><span class="field-label">D3. Mobile No. :</span><span id="c7" class="value"></span></div>
+          <div class="field"><span class="field-label">1. Sl. No. as per Register of Workmen :</span><span id="c8" class="value"></span></div>
+          <div class="field"><span class="field-label">2. Nature or Designation :</span><span id="c9" class="value"></span></div>
+          <div class="field"><span class="field-label">3. Wages Rate :</span><span id="c10" class="value"></span></div>
+          <div class="field"><span class="field-label">4. Date of joining :</span><span id="c11" class="value"></span></div>
+          <div class="field"><span class="field-label">5. Remarks :</span><span id="c12" class="value"></span></div>
+        </div>
+      </div>
+      <div class="signature">Seal and Signature of Contractor</div>
+    </div>
+
+    <div class="right">
+      <div class="pledge-title">SAFETY PLEDGE / सुरक्षा की शपथ</div>
+      <div class="pledge-text">
+        <p>
+        I fully realise that accidents are a drain on the national economy and lead to disablements, deaths, harm to health, damage to property, social suffering and general degradation of environment. I will do everything possible for the prevention of accidents in the interest of self, family, organisation and the nation at large.
+        </p>
+        <p>
+        मैं पूरी तरह से महसूस करता हूँ कि दुर्घटनाएँ राष्ट्रीय अर्थव्यवस्था के लिए क्षति हैं और विकलांगता, मृत्यु, स्वास्थ्य को नुकसान, संपत्ति को नुकसान, सामाजिक पीड़ा और पर्यावरण के सामान्य क्षरण का कारण बनती हैं। मैं स्वयं, परिवार, संगठन, और राष्ट्र के हित में दुर्घटनाओं की रोकथाम के लिए हर संभव प्रयास करूँगा।
+        </p>
+      </div>
+      <div class="jaya-surakshya">JAYA SURAKSHYA / जय सुरक्षा</div>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:10px;">
+    <button onclick="downloadPNG()">Download PNG</button>
+    <button onclick="downloadJPG()">Download JPG</button>
+    <button onclick="downloadPDF()">Download PDF</button>
+  </div>
+</div>
+
+<script>
+function startLoading(){
+  document.getElementById('loading').style.display='block';
+  setTimeout(()=>{
+    document.getElementById('loading').style.display='none';
+    showCard();
+  },2000);
+}
+
+function showCard(){
+  document.getElementById('c1').textContent=document.getElementById('contractor').value;
+  document.getElementById('c2').textContent=document.getElementById('nature').value;
+  document.getElementById('c3').textContent=document.getElementById('employer').value;
+  document.getElementById('c4').textContent=document.getElementById('workman').value;
+  document.getElementById('c5').textContent=document.getElementById('uan').value;
+  document.getElementById('c6').textContent=document.getElementById('aadhaar').value;
+  document.getElementById('c7').textContent=document.getElementById('mobile').value;
+  document.getElementById('c8').textContent=document.getElementById('slno').value;
+  document.getElementById('c9').textContent=document.getElementById('designation').value;
+  document.getElementById('c10').textContent=document.getElementById('wages').value;
+  document.getElementById('c11').textContent=document.getElementById('joining').value;
+  document.getElementById('c12').textContent=document.getElementById('remarks').value;
+  document.getElementById('card').style.display='block';
+}
+
+function closePopup(){ document.getElementById('card').style.display='none'; }
+
+function showSuccess(){
+  let popup=document.getElementById('successPopup');
+  popup.style.display='block';
+  setTimeout(()=>{ popup.style.display='none'; },2000);
+}
+
+function downloadPNG(){
+  html2canvas(document.querySelector('.id-card')).then(canvas=>{
+    let link=document.createElement('a');
+    link.download='id-card.png';
+    link.href=canvas.toDataURL();
+    link.click();
+    showSuccess();
+  });
+}
+function downloadJPG(){
+  html2canvas(document.querySelector('.id-card')).then(canvas=>{
+    let link=document.createElement('a');
+    link.download='id-card.jpg';
+    link.href=canvas.toDataURL('image/jpeg');
+    link.click();
+    showSuccess();
+  });
+}
+function downloadPDF(){
+  html2canvas(document.querySelector('.id-card'), { scale:2 }).then(canvas=>{
+    const { jsPDF } = window.jspdf;
+    const pdf=new jsPDF('l','mm','a4');
+    const imgData=canvas.toDataURL('image/png');
+    const pdfWidth=pdf.internal.pageSize.getWidth();
+    const pdfHeight=pdf.internal.pageSize.getHeight();
+    pdf.addImage(imgData,'PNG',0,0,pdfWidth,pdfHeight);
+    pdf.save('id-card.pdf');
+    showSuccess();
+  });
+}
+</script>
+</body>
+</html>
