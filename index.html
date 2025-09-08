@@ -166,7 +166,7 @@
   <label>Nature or Designation: <input id="designation" type="text"></label>
   <label>Wages Rate : <input id="wages" type="text"></label>
   <label>Date of Joining: <input id="joining" type="text"></label>
-  <label>Remarks: <input id="remarks" type="text"></label>
+  <label>Card Validity (From–To): <input id="validity" type="text" placeholder="01/01/2025 To 01/01/2026"></label>
   <button class="preview-btn" onclick="startLoading()">Preview ID Card</button>
   <div class="powered">Powered by BAPON BARMON</div>
 </div>
@@ -200,7 +200,7 @@
           <div class="field"><span class="field-label">2. Nature or Designation :</span><span id="c9" class="value"></span></div>
           <div class="field"><span class="field-label">3. Wages Rate :</span><span id="c10" class="value"></span></div>
           <div class="field"><span class="field-label">4. Date of joining :</span><span id="c11" class="value"></span></div>
-          <div class="field"><span class="field-label">5. Remarks :</span><span id="c12" class="value"></span></div>
+          <div class="field"><span class="field-label">5. Card Validity :</span><span id="c12" class="value"></span></div>
         </div>
       </div>
       <div class="signature">Seal and Signature of Contractor</div>
@@ -260,7 +260,7 @@ function showCard(){
   document.getElementById('c9').textContent=document.getElementById('designation').value;
   document.getElementById('c10').textContent=document.getElementById('wages').value;
   document.getElementById('c11').textContent=document.getElementById('joining').value;
-  document.getElementById('c12').textContent=document.getElementById('remarks').value;
+  document.getElementById('c12').textContent=document.getElementById('validity').value;
   document.getElementById('card').style.display='block';
 }
 
